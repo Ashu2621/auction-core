@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # AuctionCore — Real-Time Auction Engine API
 
 A production-grade TypeScript/Node.js backend implementing a white-label English ascending-bid auction engine. Designed to replace a broken Node.js monolith with correct atomicity, idempotency, server-side anti-sniping, proxy bidding, and real-time WebSocket broadcasting.
@@ -454,3 +455,7 @@ All amounts stored in cents (integers) to avoid floating-point precision issues.
     ├── idempotency.test.ts      # Lock acquisition, replay, concurrent requests
     └── settlement.test.ts       # Lot closer, invoice generation, SKIP LOCKED
 ```
+=======
+# auction-core
+Distributed auction engine with atomic bid processing, idempotency, anti-sniping, and proxy bidding (Node.js + TypeScript)
+>>>>>>> f0371570c82226643046d8f97aa66e9c11a1a233
