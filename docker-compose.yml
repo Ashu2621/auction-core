@@ -1,0 +1,93 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: auctioncore_postgres
+    environment:
+      POSTGRES_DB: auctioncore
+      POSTGRES_USER: auction
+      POSTGRES_PASSWORD: auction_pass
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U auction -d auctioncore']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - auctioncore
+
+  redis:
+    image: redis:7-alpine
+    container_name: auctioncore_redis
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - auctioncore
+
+  payment-gateway:
+    build:
+      context: ./mock-services/payment-gateway
+      dockerfile: Dockerfile
+    container_name: auctioncore_payment_gateway
+    environment:
+      PORT: '3001'
+      DECLINE_RATE: '0.1'
+    ports:
+      - '3001:3001'
+    networks:
+      - auctioncore
+
+  identity-verification:
+    build:
+      context: ./mock-services/identity-verification
+      dockerfile: Dockerfile
+    container_name: auctioncore_identity_verification
+    environment:
+      PORT: '3002'
+    ports:
+      - '3002:3002'
+    networks:
+      - auctioncore
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auctioncore_app
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://auction:auction_pass@postgres:5432/auctioncore
+      REDIS_URL: redis://redis:6379
+      PAYMENT_GATEWAY_URL: http://payment-gateway:3001
+      IDENTITY_VERIFICATION_URL: http://identity-verification:3002
+      PORT: '3000'
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      payment-gateway:
+        condition: service_started
+      identity-verification:
+        condition: service_started
+    networks:
+      - auctioncore
+
+volumes:
+  postgres_data:
+
+networks:
+  auctioncore:
+    driver: bridge
