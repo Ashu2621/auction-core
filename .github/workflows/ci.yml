@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # The integration tests are the ones worth running: row locking under
+    # contention, idempotent replay, anti-snipe extension, SKIP LOCKED in the
+    # lot closer. None of those can be proven against a mock, so CI stands up
+    # the real engines rather than skipping the tests that need them.
+    #
+    # Redis is here because src/redis/client.ts connects at import time
+    # (lazyConnect: false) — importing the bid processor opens a connection
+    # before a single test runs.
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: auctioncore
+          POSTGRES_USER: auction
+          POSTGRES_PASSWORD: auction_pass
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://auction:auction_pass@localhost:5432/auctioncore
+      REDIS_URL: redis://localhost:6379
+      CI: 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run lint
+
+      - name: Apply migrations
+        run: npm run migrate
+
+      # tests/ci-guard.test.ts fails the build if DATABASE_URL is missing here,
+      # so a misconfigured workflow surfaces as a red build rather than as a
+      # suite that passes by skipping everything that matters.
+      - name: Tests
+        run: npm test
