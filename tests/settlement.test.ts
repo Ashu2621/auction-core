@@ -11,6 +11,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Pool } from 'pg';
+import { lotNumber } from './fixtures/ids';
 import { runLotCloserCycle } from '../src/internal/settlement/lot-closer';
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
@@ -66,7 +67,7 @@ async function createClosingLot(
      RETURNING id`,
     [
       auctionId,
-      `LOT-SETTLE-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      lotNumber('SETL'),
       opts.currentBidCents,
       opts.reservePriceCents ?? null,
       opts.currentBidCents,
