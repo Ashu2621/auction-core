@@ -140,3 +140,6 @@ vite.config.ts.timestamp-*
 
 # JetBrains IDE
 .idea/
+
+# Claude Code local settings
+.claude/settings.local.json
