@@ -10,6 +10,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Pool, PoolClient } from 'pg';
+import { lotNumber } from './fixtures/ids';
 import { acquireLock, releaseLock, forceUnlock } from '../src/internal/idempotency/service';
 
 const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL;
@@ -179,7 +180,7 @@ describe('Idempotency Service', () => {
       `INSERT INTO lots (auction_id, lot_number, title, starting_bid, current_bid, status, closing_at, currency)
        VALUES ($1, $2, 'Idem Test Lot', 10000, 10000, 'open', NOW() + INTERVAL '30m', 'USD')
        RETURNING id`,
-      [a.id, `LOT-IDEM-${Date.now()}`]
+      [a.id, lotNumber('IDEM')]
     );
     const email = `idem-bidder-${Date.now()}@test.com`;
     const { rows: [bidder] } = await pool!.query(

@@ -23,6 +23,11 @@ export const bidsTotal = new Counter({
 export const bidProcessingDuration = new Histogram({
   name: 'bid_processing_duration_seconds',
   help: 'Duration of bid processing from receipt to DB commit (p95 target < 150ms)',
+  // Every call site closes the timer with a status — accepted, error,
+  // idempotency_replay, or the BidError code. prom-client rejects any label
+  // not declared here, so omitting this made `timer({ status })` throw on
+  // every path through processBid(), including after a successful COMMIT.
+  labelNames: ['status'] as const,
   buckets: [0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.15, 0.25, 0.5, 1.0, 2.5],
   registers: [registry],
 });

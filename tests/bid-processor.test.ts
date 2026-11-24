@@ -7,6 +7,7 @@
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { Pool } from 'pg';
+import { lotNumber } from './fixtures/ids';
 import { processBid } from '../src/internal/bidding/processor';
 import { BidError } from '../src/types';
 import { getMinimumNextBid } from '../src/internal/bidding/increment';
@@ -56,7 +57,7 @@ async function createTestLot(
   } = {}
 ): Promise<string> {
   const startingBid = opts.startingBid ?? 10_000;  // $100
-  const lotNumber = `LOT-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const lotNo = lotNumber('L');
   const { rows: [lot] } = await p.query(
     `INSERT INTO lots
        (auction_id, lot_number, title, starting_bid, reserve_price, current_bid,
@@ -65,7 +66,7 @@ async function createTestLot(
      RETURNING id`,
     [
       aId,
-      lotNumber,
+      lotNo,
       startingBid,
       opts.reservePrice ?? null,
       opts.status ?? 'open',

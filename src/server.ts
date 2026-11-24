@@ -1,12 +1,16 @@
 import { buildApp, waitForInflightBids } from './app';
-import { config } from './config';
-import { pool } from './db/pool';
-import { redis, redisSubscriber } from './redis/client';
+import { assertRuntimeConfig, config } from './config';
+import { closePool } from './db/pool';
+import { closeRedisClients, redisSubscriber } from './redis/client';
 import { initBroadcaster } from './internal/websocket/broadcaster';
 import { startLotCloser, stopLotCloser, waitForCurrentIteration } from './internal/settlement/lot-closer';
 import { startSettlementEngine, stopSettlementEngine } from './internal/settlement/payment';
 
 async function main(): Promise<void> {
+  // Config is resolved lazily (see config.ts), so read the required variables
+  // once here — a long-running server should fail at boot, not on the first
+  // request that happens to need one.
+  assertRuntimeConfig();
 
   const app = await buildApp();
 
@@ -40,9 +44,8 @@ async function main(): Promise<void> {
     await waitForCurrentIteration();
 
     // 4. Close infrastructure connections
-    await pool.end();
-    await redis.quit();
-    await redisSubscriber.quit();
+    await closePool();
+    await closeRedisClients();
 
     console.log('[server] Shutdown complete');
     process.exit(0);
